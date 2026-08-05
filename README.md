@@ -1,0 +1,64 @@
+# boutique-paymentservice-java
+
+Authorizes payments, stores payment state and handles refunds.
+
+## Overview
+
+- **Type:** Spring Boot service
+- **Stack:** Java 21, Spring Boot, Maven, JPA, PostgreSQL, Flyway, Actuator, Docker
+- **Port:** `8085`
+
+## Flow
+
+```text
+Client / service → Controller → Business logic → Database / events / downstream services
+```
+
+## Main APIs
+
+```text
+Post /authorize
+```
+
+## Database
+
+```text
+payment_refunds
+payments
+```
+
+## Configuration
+
+```text
+DB_CONNECTION_TIMEOUT_MS
+DB_MAX_LIFETIME_MS
+DB_PASSWORD
+DB_POOL_MAX_SIZE
+DB_POOL_MIN_IDLE
+DB_URL
+DB_USERNAME
+DB_VALIDATION_TIMEOUT_MS
+```
+
+## Run
+
+```bash
+./mvnw spring-boot:run
+./mvnw clean verify
+```
+
+## Docker
+
+```bash
+docker build -t boutique-paymentservice-java:local .
+```
+
+## Health
+
+```bash
+curl http://localhost:8085/actuator/health
+```
+
+## CI/CD
+
+This repository is built and deployed independently through its own GitHub Actions workflow.
