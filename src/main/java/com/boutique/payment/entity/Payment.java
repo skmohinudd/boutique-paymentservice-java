@@ -16,15 +16,13 @@ public class Payment {
  @Enumerated(EnumType.STRING) @Column(nullable=false, length=20) private PaymentStatus status;
  @Column(name="provider_reference", nullable=false, length=100) private String providerReference;
  @Column(name="created_at", nullable=false) private Instant createdAt;
-
  protected Payment() {}
- public Payment(UUID orderId, String key, BigDecimal amount, String currency, PaymentStatus status) {
-   this.id=UUID.randomUUID(); this.orderId=orderId; this.idempotencyKey=key; this.amount=amount;
-   this.currency=currency; this.status=status; this.providerReference="SIM-"+UUID.randomUUID();
-   this.createdAt=Instant.now();
+ public Payment(UUID orderId,String key,BigDecimal amount,String currency,PaymentStatus status){
+   this.id=UUID.randomUUID();this.orderId=orderId;this.idempotencyKey=key;this.amount=amount;
+   this.currency=currency.toUpperCase();this.status=status;this.providerReference="SIM-"+UUID.randomUUID();this.createdAt=Instant.now();
  }
- public UUID getId(){return id;} public UUID getOrderId(){return orderId;}
- public BigDecimal getAmount(){return amount;} public String getCurrency(){return currency;}
- public PaymentStatus getStatus(){return status;} public String getProviderReference(){return providerReference;}
- public Instant getCreatedAt(){return createdAt;}
+ public void refund(){if(status==PaymentStatus.REFUNDED)return;if(status!=PaymentStatus.AUTHORIZED)throw new IllegalStateException("Only AUTHORIZED payments can be refunded");status=PaymentStatus.REFUNDED;}
+ public UUID getId(){return id;} public UUID getOrderId(){return orderId;} public BigDecimal getAmount(){return amount;}
+ public String getCurrency(){return currency;} public PaymentStatus getStatus(){return status;}
+ public String getProviderReference(){return providerReference;} public Instant getCreatedAt(){return createdAt;}
 }

@@ -1,23 +1,11 @@
 package com.boutique.payment.service;
-import com.boutique.payment.dto.*;
-import com.boutique.payment.entity.*;
-import com.boutique.payment.repository.PaymentRepository;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
+import com.boutique.payment.dto.*;import com.boutique.payment.entity.*;import com.boutique.payment.messaging.PaymentEventPublisher;import com.boutique.payment.repository.*;import org.springframework.http.HttpStatus;import org.springframework.stereotype.Service;import org.springframework.transaction.annotation.Transactional;import org.springframework.web.server.ResponseStatusException;import java.util.UUID;
 @Service
-public class PaymentService {
- private final PaymentRepository repository;
- public PaymentService(PaymentRepository repository){this.repository=repository;}
-
- @Transactional
- public PaymentResponse authorize(AuthorizePaymentRequest request){
-   return repository.findByIdempotencyKey(request.idempotencyKey()).map(this::map).orElseGet(() -> {
-     PaymentStatus status = request.cardLast4().equals("0000") ? PaymentStatus.DECLINED : PaymentStatus.AUTHORIZED;
-     return map(repository.save(new Payment(request.orderId(), request.idempotencyKey(),
-       request.amount(), request.currency(), status)));
-   });
- }
- private PaymentResponse map(Payment p){return new PaymentResponse(p.getId(),p.getOrderId(),p.getAmount(),
-   p.getCurrency(),p.getStatus(),p.getProviderReference(),p.getCreatedAt());}
+public class PaymentService{
+ private final PaymentRepository repository;private final PaymentRefundRepository refunds;private final PaymentEventPublisher events;private final DemoPaymentProvider provider;
+ public PaymentService(PaymentRepository r,PaymentRefundRepository f,PaymentEventPublisher e,DemoPaymentProvider p){repository=r;refunds=f;events=e;provider=p;}
+ @Transactional public PaymentResponse authorize(AuthorizePaymentRequest request){return repository.findByIdempotencyKey(request.idempotencyKey()).map(this::map).orElseGet(()->{var result=provider.authorize(request.cardLast4());Payment p=repository.save(new Payment(request.orderId(),request.idempotencyKey(),request.amount(),request.currency(),result.status()));events.publish(result.status()==PaymentStatus.AUTHORIZED?"PAYMENT_AUTHORIZED":"PAYMENT_DECLINED",p.getId(),p.getOrderId(),p.getStatus().name());return map(p);});}
+ @Transactional public PaymentResponse refund(UUID paymentId,String reason){Payment p=repository.findById(paymentId).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"Payment not found: "+paymentId));if(p.getStatus()==PaymentStatus.REFUNDED)return map(p);p.refund();if(!refunds.existsByPaymentId(paymentId))refunds.save(new PaymentRefund(paymentId,p.getAmount(),reason==null||reason.isBlank()?"Checkout compensation":reason));events.publish("PAYMENT_REFUNDED",p.getId(),p.getOrderId(),p.getStatus().name());return map(p);}
+ @Transactional(readOnly=true) public PaymentResponse get(UUID paymentId){return repository.findById(paymentId).map(this::map).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"Payment not found: "+paymentId));}
+ private PaymentResponse map(Payment p){return new PaymentResponse(p.getId(),p.getOrderId(),p.getAmount(),p.getCurrency(),p.getStatus(),p.getProviderReference(),p.getCreatedAt());}
 }

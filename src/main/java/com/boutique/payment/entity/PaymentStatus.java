@@ -1,2 +1,2 @@
 package com.boutique.payment.entity;
-public enum PaymentStatus { AUTHORIZED, DECLINED }
+public enum PaymentStatus { AUTHORIZED, DECLINED, REFUNDED }

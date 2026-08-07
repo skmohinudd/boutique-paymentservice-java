@@ -1,0 +1,8 @@
+package com.boutique.payment.messaging;
+import com.boutique.payment.repository.PaymentOutboxRepository;import tools.jackson.databind.ObjectMapper;import org.slf4j.*;import org.springframework.amqp.rabbit.core.RabbitTemplate;import org.springframework.beans.factory.annotation.Value;import org.springframework.kafka.core.KafkaTemplate;import org.springframework.scheduling.annotation.Scheduled;import org.springframework.stereotype.Component;import org.springframework.transaction.annotation.Transactional;
+@Component
+public class PaymentOutboxPublisher{
+ private static final Logger log=LoggerFactory.getLogger(PaymentOutboxPublisher.class);private final PaymentOutboxRepository repo;private final KafkaTemplate<String,String>kafka;private final RabbitTemplate rabbit;private final ObjectMapper json;private final String topic;
+ public PaymentOutboxPublisher(PaymentOutboxRepository r,KafkaTemplate<String,String>k,RabbitTemplate q,ObjectMapper j,@Value("${app.kafka.payment-events-topic}")String t){repo=r;kafka=k;rabbit=q;json=j;topic=t;}
+ @Scheduled(fixedDelayString="${app.outbox.publish-delay-ms:1000}") @Transactional public void publish(){for(var e:repo.lockBatch(50)){if(e.getKafkaPublishedAt()==null)try{kafka.send(topic,e.getAggregateId().toString(),e.getPayload()).join();e.kafkaPublished();}catch(Exception x){log.error("PAYMENT_OUTBOX_KAFKA_FAILED eventId={}",e.getId(),x);}if(e.getRabbitPublishedAt()==null)try{String type=json.readTree(e.getPayload()).path("eventType").asText("UNKNOWN");rabbit.convertAndSend(RabbitTopologyConfig.EXCHANGE,"payment."+type.toLowerCase(),e.getPayload());e.rabbitPublished();}catch(Exception x){log.error("PAYMENT_OUTBOX_RABBIT_FAILED eventId={}",e.getId(),x);}}}
+}

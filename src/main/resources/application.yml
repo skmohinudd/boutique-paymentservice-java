@@ -14,6 +14,12 @@ spring:
 server:
   port: ${SERVER_PORT:8085}
   shutdown: graceful
+  tomcat:
+    threads:
+      max: ${SERVER_TOMCAT_MAX_THREADS:64}
+      min-spare: ${SERVER_TOMCAT_MIN_SPARE_THREADS:10}
+    accept-count: ${SERVER_TOMCAT_ACCEPT_COUNT:200}
+    max-connections: ${SERVER_TOMCAT_MAX_CONNECTIONS:2000}
 management:
   endpoints:
     web:
@@ -26,3 +32,8 @@ management:
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
+
+spring.kafka.bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:29092}
+app.kafka.payment-events-topic: ${KAFKA_PAYMENT_EVENTS_TOPIC:boutique.payment.events}
+
+demo.payment.latency-ms: ${DEMO_PAYMENT_LATENCY_MS:250}
