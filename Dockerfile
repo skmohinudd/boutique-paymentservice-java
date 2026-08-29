@@ -7,14 +7,12 @@
 
 FROM eclipse-temurin:21-jdk-jammy AS build
 
-
 # ------------------------------------------------------------
 # Set the working directory inside the Docker build container.
 # All following commands will run from /app.
 # ------------------------------------------------------------
 
 WORKDIR /app
-
 
 # ------------------------------------------------------------
 # Copy Maven Wrapper files first.
@@ -28,7 +26,6 @@ WORKDIR /app
 COPY .mvn/ .mvn/
 COPY mvnw pom.xml ./
 
-
 # ------------------------------------------------------------
 # Git Bash/Windows can save mvnw with CRLF line endings.
 # Linux containers expect LF.
@@ -38,7 +35,6 @@ COPY mvnw pom.xml ./
 # ------------------------------------------------------------
 
 RUN sed -i 's/\r$//' mvnw && chmod +x mvnw
-
 
 # ------------------------------------------------------------
 # Download Maven dependencies before copying application code.
@@ -51,13 +47,11 @@ RUN ./mvnw \
     --no-transfer-progress \
     dependency:go-offline
 
-
 # ------------------------------------------------------------
 # Copy the actual Spring Boot source code.
 # ------------------------------------------------------------
 
 COPY src/ src/
-
 
 # ------------------------------------------------------------
 # Build the Spring Boot JAR.
@@ -90,8 +84,6 @@ RUN ./mvnw \
     && test -n "$JAR_FILE" \
     && cp "$JAR_FILE" /app/app.jar
 
-
-
 # ============================================================
 # STAGE 2 - RUN THE APPLICATION
 # ============================================================
@@ -104,13 +96,11 @@ RUN ./mvnw \
 
 FROM eclipse-temurin:21-jre-jammy
 
-
 # ------------------------------------------------------------
 # Application working directory.
 # ------------------------------------------------------------
 
 WORKDIR /app
-
 
 # ------------------------------------------------------------
 # Create a dedicated non-root Linux user.
@@ -128,7 +118,6 @@ RUN useradd \
     --no-create-home \
     appuser
 
-
 # ------------------------------------------------------------
 # Copy ONLY the final JAR from the build stage.
 #
@@ -140,13 +129,11 @@ COPY --from=build \
     /app/app.jar \
     /app/app.jar
 
-
 # ------------------------------------------------------------
 # Everything after this runs as the non-root application user.
 # ------------------------------------------------------------
 
 USER 10001
-
 
 # ------------------------------------------------------------
 # Application port.
@@ -160,7 +147,6 @@ USER 10001
 # ------------------------------------------------------------
 
 EXPOSE 8085
-
 
 # ------------------------------------------------------------
 # Start the Spring Boot application.
